@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CANDELA – Digital Dossier | Barceló Málaga</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0e0d;
+      --surface: #1a1815;
+      --text: #e8e0d0;
+      --muted: #7a7060;
+    }
+    body {
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100vh;
+      padding: 1.5rem 4rem;
+      overflow: hidden;
+    }
+    #book-wrap {
+      position: relative;
+      width: min(90vw, 1150px);
+      aspect-ratio: 1.414;
+      perspective: 2500px;
+      transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+    }
+    #book-wrap.is-cover {
+      transform: translateX(-25%);
+    }
+    #book-wrap.is-back {
+      transform: translateX(25%);
+    }
+    #book-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 4px;
+      box-shadow: 0 30px 90px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.07);
+      pointer-events: none;
+      z-index: 30;
+      transition: left 0.85s cubic-bezier(0.645, 0.045, 0.355, 1.000),
+                  right 0.85s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+    }
+    #book-wrap.is-cover::before {
+      left: 50%;
+      right: -6px;
+      border-radius: 2px 5px 5px 2px;
+    }
+    #book-wrap.is-back::before {
+      left: -6px;
+      right: 50%;
+      border-radius: 5px 2px 2px 5px;
+    }
+
+    #left-display, #right-display {
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      overflow: visible;
+      cursor: pointer;
+      background: #151412;
+    }
+    #left-display {
+      left: 0;
+      box-shadow: inset -15px 0 30px rgba(0,0,0,.35);
+    }
+    #right-display {
+      right: 0;
+      box-shadow: inset 15px 0 30px rgba(0,0,0,.35);
+    }
+    #book-wrap.is-cover #right-display {
+      box-shadow: inset 8px 0 24px rgba(0,0,0,.45);
+    }
+    #book-wrap.is-back #left-display {
+      box-shadow: inset -8px 0 24px rgba(0,0,0,.45);
+    }
+    #left-display img, #right-display img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    #book-wrap.is-cover #left-display {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #book-wrap.is-back #right-display {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* FULL DISPLAY (Para páginas horizontales / pliegos completos como 76, 77, 78, 79) */
+    #full-display {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      cursor: pointer;
+      background: #151412;
+      display: none;
+      z-index: 15;
+    }
+    #full-display img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .page {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 50%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform-origin: left center;
+      transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+      z-index: 25;
+      pointer-events: none;
+      visibility: hidden;
+    }
+    .page .front, .page .back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+      background: #151412;
+    }
+    .page .front img, .page .back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .page .back {
+      transform: rotateY(180deg);
+    }
+    .page.turned {
+      transform: rotateY(-180deg);
+    }
+    .page::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,.45) 100%);
+      opacity: 0;
+      transition: opacity 0.85s;
+      pointer-events: none;
+      backface-visibility: hidden;
+    }
+    .page.flipping::after {
+      opacity: 1;
+    }
+
+    /* CONTROLES DE NAVEGACIÓN */
+    .arrow-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255,255,255,.75);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      line-height: 1;
+      transition: color .2s, transform .15s, opacity .25s;
+      z-index: 40;
+      user-select: none;
+    }
+    .arrow-btn:hover {
+      color: #fff;
+      transform: translateY(-50%) scale(1.15);
+    }
+    .arrow-btn:active {
+      transform: translateY(-50%) scale(.9);
+    }
+    .arrow-btn:disabled {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #btn-prev { left: 1.2rem; }
+    #btn-next { right: 1.2rem; }
+
+    /* CAPAS DE ELEMENTOS INTERACTIVOS (HOTSPOTS) */
+    .hotspot-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* PUNTOS INTERACTIVOS DE VÍDEO (TRANSPARENTES SOBRE EL BOTÓN DE LA FOTO) */
+    .video-hotspot-pin {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      z-index: 22;
+      pointer-events: auto;
+    }
+
+    /* VÍDEO EN GRANDE AL PASAR POR ENCIMA (LIMPIO, SIN ESTILOS NI MARCOS DORADOS) */
+    .video-hover-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      width: min(88%, 360px);
+      aspect-ratio: 9 / 16;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95);
+      background: #000;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+      z-index: 50;
+      cursor: pointer;
+    }
+    .video-hover-card.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .video-hover-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ENLACES WEB EN EL LIBRO (TRANSPARENTES) */
+    .web-hotspot {
+      position: absolute;
+      pointer-events: auto;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      z-index: 21;
+    }
+
+    @media (max-width: 640px) {
+      #stage { padding: 1rem 2rem; }
+      .arrow-btn { width: 38px; height: 38px; font-size: 1.5rem; }
+      #btn-prev { left: .4rem; }
+      #btn-next { right: .4rem; }
+      .video-hover-card { width: 85%; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage">
+  <button class="arrow-btn" id="btn-prev" aria-label="Previous page">&#8592;</button>
+  <div id="book-wrap" class="is-cover">
+    <!-- PÁGINA IZQUIERDA -->
+    <div id="left-display">
+      <img id="left-img" src="" alt="Left page" />
+    </div>
+
+    <!-- PÁGINA DERECHA -->
+    <div id="right-display">
+      <img id="right-img" src="" alt="Right page" />
+    </div>
+
+    <!-- PÁGINA HORIZONTAL / PLIEGO COMPLETO (76, 77, 78, 79) -->
+    <div id="full-display">
+      <img id="full-img" src="" alt="Full spread" />
+    </div>
+
+    <!-- HOJA QUE GIRA -->
+    <div class="page" id="flip-page">
+      <div class="front"><img id="flip-front" src="" alt="" /></div>
+      <div class="back"><img id="flip-back" src="" alt="" /></div>
+    </div>
+  </div>
+  <button class="arrow-btn" id="btn-next" aria-label="Next page">&#8594;</button>
+</div>
+
+<script>
+  const TOTAL = 86;
+  const IMG_PATH = n => `Multimedia/JPG/${n}.jpg`;
+
+  /* DEFINICIÓN DE VÍDEOS EN LAS PÁGINAS (COORDENADAS EXACTAS DEL PDF EN INGLÉS) */
+  const VIDEO_HOTSPOTS = {
+    14: {
+      video: 'Multimedia/videos/DR47DVfivYd.mp4',
+      url: 'https://www.instagram.com/p/DR47DVfivYd/',
+      x: 11.83,
+      y: 84.51
+    },
+    30: {
+      video: 'Multimedia/videos/DcBIAgqjr0X.mp4',
+      url: 'https://www.instagram.com/p/DcBIAgqjr0X/',
+      x: 11.94,
+      y: 83.54
+    },
+    33: {
+      video: 'Multimedia/videos/DUFk3_bDcxi.mp4',
+      url: 'https://www.instagram.com/p/DUFk3_bDcxi/',
+      x: 50.01,
+      y: 55.13
+    },
+    46: {
+      video: 'Multimedia/videos/DUiVLKeDYW8.mp4',
+      url: 'https://www.instagram.com/p/DUiVLKeDYW8/',
+      x: 11.40,
+      y: 77.45
+    },
+    52: {
+      video: 'Multimedia/videos/DaK0VpVE-Y8.mp4',
+      url: 'https://www.instagram.com/p/DaK0VpVE-Y8/',
+      x: 11.40,
+      y: 87.47
+    },
+    58: {
+      video: 'Multimedia/videos/DYwe5MSjaBr.mp4',
+      url: 'https://www.instagram.com/p/DYwe5MSjaBr/',
+      x: 11.43,
+      y: 73.62
+    },
+    59: {
+      video: 'Multimedia/videos/DYAavQKCEBo.mp4',
+      url: 'https://www.instagram.com/p/DYAavQKCEBo/',
+      x: 69.55,
+      y: 72.85
+    },
+    60: {
+      video: 'Multimedia/videos/DUiVLKeDYW8.mp4',
+      url: 'https://www.instagram.com/p/DUiVLKeDYW8/',
+      x: 11.43,
+      y: 76.46
+    },
+    66: {
+      video: 'Multimedia/videos/DJ6H58xJtrQ.mp4',
+      url: 'https://www.instagram.com/p/DJ6H58xJtrQ/',
+      x: 11.46,
+      y: 85.56
+    },
+    69: {
+      video: 'Multimedia/videos/DGKwphVJ6YB.mp4',
+      url: 'https://www.instagram.com/p/DGKwphVJ6YB/',
+      x: 51.25,
+      y: 49.09
+    }
+  };
+
+  /* ENLACES WEB DIRECTOS DESDE EL PDF */
+  const WEB_HOTSPOTS = {
+    16: [
+      { x: 19.5, y: 90.3, w: 15.0, h: 2.2, url: 'https://www.barcelo.com/es-es/barcelo-malaga/habitaciones/superior-premium/', label: 'Visit Superior Premium Room' }
+    ],
+    18: [
+      { x: 19.5, y: 90.3, w: 15.0, h: 2.2, url: 'https://www.barcelo.com/es-es/barcelo-malaga/habitaciones/deluxe/', label: 'Visit Deluxe Room' }
+    ],
+    20: [
+      { x: 19.5, y: 90.3, w: 15.0, h: 2.2, url: 'https://www.barcelo.com/es-es/barcelo-malaga/habitaciones/junior-suite/', label: 'Visit Junior Suite' }
+    ],
+    22: [
+      { x: 19.5, y: 90.3, w: 15.0, h: 2.2, url: 'https://www.barcelo.com/es-es/barcelo-malaga/habitaciones/junior-suite-deluxe/', label: 'Visit Junior Suite Deluxe' }
+    ],
+    32: [
+      { x: 23.0, y: 85.2, w: 3.0, h: 2.0, url: 'https://www.barcelo.com/es-es/barcelo-malaga/reuniones-y-eventos/', label: 'Meetings & Events Barceló Málaga' }
+    ]
+  };
+
+  /* ESTRUCTURA DE PLIEGOS (SPREADS), INCLUYENDO PÁGINAS HORIZONTALES COMPLETAS */
+  function buildSpreads() {
+    const list = [];
+    // Portada
+    list.push({ type: 'cover', left: null, right: 1 });
+    // Páginas normales de 2 a 75
+    for (let p = 2; p <= 75; p += 2) {
+      list.push({ type: 'double', left: p, right: p + 1 <= 75 ? p + 1 : null });
+    }
+    // Páginas horizontales 76, 77, 78, 79 que mantienen su tamaño ocupando el pliego completo
+    list.push({ type: 'full', page: 76 });
+    list.push({ type: 'full', page: 77 });
+    list.push({ type: 'full', page: 78 });
+    list.push({ type: 'full', page: 79 });
+    // Páginas normales de 80 a 85
+    list.push({ type: 'double', left: 80, right: 81 });
+    list.push({ type: 'double', left: 82, right: 83 });
+    list.push({ type: 'double', left: 84, right: 85 });
+    // Contraportada
+    list.push({ type: 'back', left: 86, right: null });
+    return list;
+  }
+
+  const SPREADS = buildSpreads();
+  const maxSpread = SPREADS.length - 1;
+  let spread = 0;
+  let animating = false;
+
+  const bookWrap     = document.getElementById('book-wrap');
+  const leftDisplay  = document.getElementById('left-display');
+  const rightDisplay = document.getElementById('right-display');
+  const fullDisplay  = document.getElementById('full-display');
+  const leftImg      = document.getElementById('left-img');
+  const rightImg     = document.getElementById('right-img');
+  const fullImg      = document.getElementById('full-img');
+  const flipPage     = document.getElementById('flip-page');
+  const flipFront    = document.getElementById('flip-front');
+  const flipBack     = document.getElementById('flip-back');
+  const btnPrev      = document.getElementById('btn-prev');
+  const btnNext      = document.getElementById('btn-next');
+
+  function safeImg(n) {
+    return (n >= 1 && n <= TOTAL) ? IMG_PATH(n) : '';
+  }
+
+  /* RENDERIZADO DE HOTSPOTS EN UNA PÁGINA DETERMINADA */
+  function renderHotspots(container, pageNum) {
+    container.querySelectorAll('.hotspot-layer').forEach(el => el.remove());
+    if (!pageNum) return;
+
+    const layer = document.createElement('div');
+    layer.className = 'hotspot-layer';
+
+    // Hotspot de vídeo
+    const vData = VIDEO_HOTSPOTS[pageNum];
+    if (vData) {
+      createVideoHotspot(vData, layer);
+    }
+
+    // Hotspots de enlaces web
+    const links = WEB_HOTSPOTS[pageNum];
+    if (links) {
+      links.forEach(l => {
+        const a = document.createElement('a');
+        a.className = 'web-hotspot';
+        a.href = l.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = l.label;
+        a.style.left = `${l.x - l.w / 2}%`;
+        a.style.top = `${l.y - l.h / 2}%`;
+        a.style.width = `${l.w}%`;
+        a.style.height = `${l.h}%`;
+        a.addEventListener('click', e => e.stopPropagation());
+        layer.appendChild(a);
+      });
+    }
+
+    container.appendChild(layer);
+  }
+
+  function createVideoHotspot(vData, container) {
+    // Botón transparente exactamente sobre el icono de play de la revista
+    const pin = document.createElement('div');
+    pin.className = 'video-hotspot-pin';
+    pin.style.left = `${vData.x}%`;
+    pin.style.top = `${vData.y}%`;
+
+    // Tarjeta del vídeo en grande (limpia, sin bordes ni encabezados)
+    const card = document.createElement('div');
+    card.className = 'video-hover-card';
+    card.innerHTML = `
+      <video src="${vData.video}" muted loop playsinline preload="metadata"></video>
+    `;
+
+    const video = card.querySelector('video');
+    let hideTimer = null;
+
+    function show() {
+      clearTimeout(hideTimer);
+      card.classList.add('is-active');
+      video.play().catch(() => {});
+    }
+
+    function hide() {
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        card.classList.remove('is-active');
+        video.pause();
+      }, 140);
+    }
+
+    pin.addEventListener('mouseenter', show);
+    pin.addEventListener('mouseleave', hide);
+    card.addEventListener('mouseenter', show);
+    card.addEventListener('mouseleave', hide);
+
+    function openLink(e) {
+      e.stopPropagation();
+      window.open(vData.url, '_blank', 'noopener,noreferrer');
+    }
+    pin.addEventListener('click', openLink);
+    card.addEventListener('click', openLink);
+
+    container.appendChild(pin);
+    container.appendChild(card);
+  }
+
+  /* ACTUALIZACIÓN DEL ESTADO DE LA VISTA DEL LIBRO */
+  function updateDisplay(s) {
+    const item = SPREADS[s];
+
+    if (item.type === 'full') {
+      // Pliego horizontal completo (Páginas 76, 77, 78, 79 manteniéndose enteras)
+      fullImg.src = safeImg(item.page);
+      fullDisplay.style.display = 'block';
+      leftDisplay.style.display = 'none';
+      rightDisplay.style.display = 'none';
+      renderHotspots(fullDisplay, item.page);
+      bookWrap.classList.remove('is-cover', 'is-back');
+    } else {
+      fullDisplay.style.display = 'none';
+      leftDisplay.style.display = 'block';
+      rightDisplay.style.display = 'block';
+
+      if (item.left) {
+        leftImg.src = safeImg(item.left);
+        leftDisplay.style.visibility = 'visible';
+        renderHotspots(leftDisplay, item.left);
+      } else {
+        leftImg.src = '';
+        leftDisplay.style.visibility = 'hidden';
+        renderHotspots(leftDisplay, null);
+      }
+
+      if (item.right) {
+        rightImg.src = safeImg(item.right);
+        rightDisplay.style.visibility = 'visible';
+        renderHotspots(rightDisplay, item.right);
+      } else {
+        rightImg.src = '';
+        rightDisplay.style.visibility = 'hidden';
+        renderHotspots(rightDisplay, null);
+      }
+
+      if (item.type === 'cover') {
+        bookWrap.classList.add('is-cover');
+        bookWrap.classList.remove('is-back');
+      } else if (item.type === 'back') {
+        bookWrap.classList.add('is-back');
+        bookWrap.classList.remove('is-cover');
+      } else {
+        bookWrap.classList.remove('is-cover', 'is-back');
+      }
+    }
+
+    btnPrev.disabled = (s <= 0);
+    btnNext.disabled = (s >= maxSpread);
+  }
+
+  function getEffectivePages(s) {
+    const item = SPREADS[s];
+    if (!item) return { left: null, right: null, page: null, type: 'double' };
+    if (item.type === 'full') {
+      return { left: item.page, right: item.page, page: item.page, type: 'full' };
+    }
+    return { left: item.left, right: item.right, page: null, type: item.type };
+  }
+
+  /* GIRO DE PÁGINA ADELANTE */
+  function flipForward() {
+    if (animating || spread >= maxSpread) return;
+    animating = true;
+    const ns = spread + 1;
+    const currPages = getEffectivePages(spread);
+    const nextPages = getEffectivePages(ns);
+
+    flipFront.src = safeImg(currPages.right || currPages.page);
+    flipBack.src  = safeImg(nextPages.left || nextPages.page);
+
+    flipFront.style.objectPosition = currPages.type === 'full' ? 'right center' : 'center center';
+    flipBack.style.objectPosition  = nextPages.type === 'full' ? 'left center' : 'center center';
+
+    if (nextPages.type === 'full') {
+      rightDisplay.style.visibility = 'visible';
+      rightImg.src = safeImg(nextPages.page);
+      rightImg.style.objectPosition = 'right center';
+    } else if (nextPages.right) {
+      rightImg.src = safeImg(nextPages.right);
+      rightImg.style.objectPosition = 'center center';
+      rightDisplay.style.visibility = 'visible';
+    } else {
+      rightImg.src = '';
+      rightDisplay.style.visibility = 'hidden';
+    }
+
+    if (spread === 0) {
+      leftDisplay.style.visibility = 'hidden';
+    } else {
+      leftDisplay.style.visibility = 'visible';
+    }
+
+    flipPage.style.transition = 'none';
+    flipPage.classList.remove('turned');
+    flipPage.style.visibility = 'visible';
+    void flipPage.offsetWidth;
+
+    if (spread === 0) {
+      bookWrap.classList.remove('is-cover');
+    }
+    if (SPREADS[ns].type === 'back') {
+      bookWrap.classList.add('is-back');
+    }
+
+    flipPage.style.transition = '';
+    flipPage.classList.add('flipping');
+    requestAnimationFrame(() => {
+      flipPage.classList.add('turned');
+    });
+
+    flipPage.addEventListener('transitionend', function h(e) {
+      if (e.target !== flipPage) return;
+      flipPage.removeEventListener('transitionend', h);
+      flipPage.style.transition = 'none';
+      flipPage.classList.remove('flipping');
+      flipPage.classList.remove('turned');
+      flipPage.style.visibility = 'hidden';
+      spread = ns;
+      updateDisplay(spread);
+      animating = false;
+    });
+  }
+
+  /* GIRO DE PÁGINA ATRÁS */
+  function flipBackward() {
+    if (animating || spread <= 0) return;
+    animating = true;
+    const ps = spread - 1;
+    const currPages = getEffectivePages(spread);
+    const prevPages = getEffectivePages(ps);
+
+    flipBack.src  = safeImg(currPages.left || currPages.page);
+    flipFront.src = safeImg(prevPages.right || prevPages.page);
+
+    flipBack.style.objectPosition  = currPages.type === 'full' ? 'left center' : 'center center';
+    flipFront.style.objectPosition = prevPages.type === 'full' ? 'right center' : 'center center';
+
+    if (prevPages.type === 'full') {
+      leftDisplay.style.visibility = 'visible';
+      leftImg.src = safeImg(prevPages.page);
+      leftImg.style.objectPosition = 'left center';
+    } else if (prevPages.left) {
+      leftImg.src = safeImg(prevPages.left);
+      leftImg.style.objectPosition = 'center center';
+      leftDisplay.style.visibility = 'visible';
+    } else {
+      leftImg.src = '';
+      leftDisplay.style.visibility = 'hidden';
+    }
+
+    if (currPages.right || currPages.type === 'full') {
+      rightDisplay.style.visibility = 'visible';
+    }
+
+    flipPage.style.transition = 'none';
+    flipPage.classList.add('turned');
+    flipPage.style.visibility = 'visible';
+    void flipPage.offsetWidth;
+
+    if (SPREADS[ps].type === 'cover') {
+      bookWrap.classList.add('is-cover');
+    }
+    if (spread === maxSpread) {
+      bookWrap.classList.remove('is-back');
+    }
+
+    flipPage.style.transition = '';
+    flipPage.classList.add('flipping');
+    requestAnimationFrame(() => {
+      flipPage.classList.remove('turned');
+    });
+
+    flipPage.addEventListener('transitionend', function h(e) {
+      if (e.target !== flipPage) return;
+      flipPage.removeEventListener('transitionend', h);
+      flipPage.style.transition = 'none';
+      flipPage.classList.remove('flipping');
+      flipPage.classList.remove('turned');
+      flipPage.style.visibility = 'hidden';
+      spread = ps;
+      updateDisplay(spread);
+      animating = false;
+    });
+  }
+
+  btnNext.addEventListener('click', flipForward);
+  btnPrev.addEventListener('click', flipBackward);
+  rightDisplay.addEventListener('click', flipForward);
+  leftDisplay.addEventListener('click', flipBackward);
+
+  fullDisplay.addEventListener('click', e => {
+    const rect = fullDisplay.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x > rect.width / 2) {
+      flipForward();
+    } else {
+      flipBackward();
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') flipForward();
+    if (e.key === 'ArrowLeft') flipBackward();
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) {
+      dx < 0 ? flipForward() : flipBackward();
+    }
+  });
+
+  updateDisplay(spread);
+</script>
+</body>
+</html>
