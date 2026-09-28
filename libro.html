@@ -320,7 +320,7 @@
 </div>
 
 <script>
-  const TOTAL = 87;
+  const TOTAL = 86;
   const IMG_PATH = n => `Multimedia/JPG/(Inglés) (${n}).jpg`;
 
   /* DEFINICIÓN DE VÍDEOS EN LAS PÁGINAS (COORDENADAS EXACTAS DEL PDF EN INGLÉS) */
@@ -409,14 +409,23 @@
   /* ESTRUCTURA DE PLIEGOS (SPREADS), INCLUYENDO PÁGINAS HORIZONTALES COMPLETAS */
   function buildSpreads() {
     const list = [];
-    // Portada
+    // Portada (Cover)
     list.push({ type: 'cover', left: null, right: 1 });
-    // Páginas internas de 2 a 86 en pliegos dobles
-    for (let p = 2; p <= 86; p += 2) {
-      list.push({ type: 'double', left: p, right: p + 1 <= 86 ? p + 1 : null });
+    // Páginas normales de 2 a 75 en pliegos dobles
+    for (let p = 2; p <= 75; p += 2) {
+      list.push({ type: 'double', left: p, right: p + 1 <= 75 ? p + 1 : null });
     }
-    // Contraportada
-    list.push({ type: 'back', left: 87, right: null });
+    // Páginas horizontales 76, 77, 78, 79 que ocupan el pliego completo
+    list.push({ type: 'full', page: 76 });
+    list.push({ type: 'full', page: 77 });
+    list.push({ type: 'full', page: 78 });
+    list.push({ type: 'full', page: 79 });
+    // Páginas normales de 80 a 85 en pliegos dobles
+    list.push({ type: 'double', left: 80, right: 81 });
+    list.push({ type: 'double', left: 82, right: 83 });
+    list.push({ type: 'double', left: 84, right: 85 });
+    // Contraportada (Back cover)
+    list.push({ type: 'back', left: 86, right: null });
     return list;
   }
 
