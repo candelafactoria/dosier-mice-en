@@ -320,8 +320,8 @@
 </div>
 
 <script>
-  const TOTAL = 86;
-  const IMG_PATH = n => `Multimedia/JPG/${n}.jpg`;
+  const TOTAL = 87;
+  const IMG_PATH = n => `Multimedia/JPG/(Inglés) (${n}).jpg`;
 
   /* DEFINICIÓN DE VÍDEOS EN LAS PÁGINAS (COORDENADAS EXACTAS DEL PDF EN INGLÉS) */
   const VIDEO_HOTSPOTS = {
@@ -411,21 +411,12 @@
     const list = [];
     // Portada
     list.push({ type: 'cover', left: null, right: 1 });
-    // Páginas normales de 2 a 75
-    for (let p = 2; p <= 75; p += 2) {
-      list.push({ type: 'double', left: p, right: p + 1 <= 75 ? p + 1 : null });
+    // Páginas internas de 2 a 86 en pliegos dobles
+    for (let p = 2; p <= 86; p += 2) {
+      list.push({ type: 'double', left: p, right: p + 1 <= 86 ? p + 1 : null });
     }
-    // Páginas horizontales 76, 77, 78, 79 que mantienen su tamaño ocupando el pliego completo
-    list.push({ type: 'full', page: 76 });
-    list.push({ type: 'full', page: 77 });
-    list.push({ type: 'full', page: 78 });
-    list.push({ type: 'full', page: 79 });
-    // Páginas normales de 80 a 85
-    list.push({ type: 'double', left: 80, right: 81 });
-    list.push({ type: 'double', left: 82, right: 83 });
-    list.push({ type: 'double', left: 84, right: 85 });
     // Contraportada
-    list.push({ type: 'back', left: 86, right: null });
+    list.push({ type: 'back', left: 87, right: null });
     return list;
   }
 
