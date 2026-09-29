@@ -112,7 +112,7 @@
       pointer-events: none;
     }
 
-    /* FULL DISPLAY (Para páginas horizontales / pliegos completos como 76, 77, 78, 79) */
+    /* FULL DISPLAY (páginas apaisadas / pliegos completos: anexos 83–86) */
     #full-display {
       position: absolute;
       inset: 0;
@@ -305,7 +305,7 @@
       <img id="right-img" src="" alt="Right page" />
     </div>
 
-    <!-- PÁGINA HORIZONTAL / PLIEGO COMPLETO (76, 77, 78, 79) -->
+    <!-- PÁGINA HORIZONTAL / PLIEGO COMPLETO (anexos 83–86) -->
     <div id="full-display">
       <img id="full-img" src="" alt="Full spread" />
     </div>
@@ -321,7 +321,7 @@
 
 <script>
   const TOTAL = 86;
-  const IMG_PATH = n => `Multimedia/JPG/(Inglés) (${n}).jpg`;
+  const IMG_PATH = n => encodeURI(`Multimedia/JPG/(Inglés) (${n}).jpg`);
 
   /* DEFINICIÓN DE VÍDEOS EN LAS PÁGINAS (COORDENADAS EXACTAS DEL PDF EN INGLÉS) */
   const VIDEO_HOTSPOTS = {
@@ -406,26 +406,23 @@
     ]
   };
 
-  /* ESTRUCTURA DE PLIEGOS (SPREADS), INCLUYENDO PÁGINAS HORIZONTALES COMPLETAS */
+  /* ESTRUCTURA DE PLIEGOS: portada y cierre sueltos; interior a dos páginas.
+     Las JPG apaisadas de anexos (83–86) se exportaron al final y se recolocan
+     después de la 75, como en el PDF (páginas impresas 076–079). */
   function buildSpreads() {
     const list = [];
-    // Portada (Cover)
     list.push({ type: 'cover', left: null, right: 1 });
-    // Páginas normales de 2 a 75 en pliegos dobles
     for (let p = 2; p <= 75; p += 2) {
       list.push({ type: 'double', left: p, right: p + 1 <= 75 ? p + 1 : null });
     }
-    // Páginas horizontales 76, 77, 78, 79 que ocupan el pliego completo
-    list.push({ type: 'full', page: 76 });
-    list.push({ type: 'full', page: 77 });
-    list.push({ type: 'full', page: 78 });
-    list.push({ type: 'full', page: 79 });
-    // Páginas normales de 80 a 85 en pliegos dobles
+    list.push({ type: 'full', page: 83 });
+    list.push({ type: 'full', page: 84 });
+    list.push({ type: 'full', page: 85 });
+    list.push({ type: 'full', page: 86 });
+    list.push({ type: 'double', left: 76, right: 77 });
+    list.push({ type: 'double', left: 78, right: 79 });
     list.push({ type: 'double', left: 80, right: 81 });
-    list.push({ type: 'double', left: 82, right: 83 });
-    list.push({ type: 'double', left: 84, right: 85 });
-    // Contraportada (Back cover)
-    list.push({ type: 'back', left: 86, right: null });
+    list.push({ type: 'back', left: 82, right: null });
     return list;
   }
 
@@ -539,7 +536,7 @@
     const item = SPREADS[s];
 
     if (item.type === 'full') {
-      // Pliego horizontal completo (Páginas 76, 77, 78, 79 manteniéndose enteras)
+      // Pliego horizontal completo (anexos 83–86)
       fullImg.src = safeImg(item.page);
       fullDisplay.style.display = 'block';
       leftDisplay.style.display = 'none';
